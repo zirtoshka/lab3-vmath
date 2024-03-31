@@ -13,6 +13,7 @@ public class MethodManager {
     private BigDecimal rightBorder;
     private BigDecimal accuracy;
     private Function<BigDecimal, BigDecimal> function;
+    private BigDecimal breakPoint = null;
 
     private int methodNumber;
 
@@ -30,11 +31,40 @@ public class MethodManager {
 
     public void runMethod() {
         int n = numberOfSplits;
-
-        BigDecimal res1 = methodMap.get(methodNumber).apply(function);
+        int k;
+        if (methodNumber == 5) {
+            k = 4;
+        } else {
+            k = 2;
+        }
+        int check = 0;
+        if (breakPoint!=null){
+            if(leftBorder.compareTo(breakPoint)<0 && rightBorder.compareTo(breakPoint)>0){
+                if(leftBorder.subtract(breakPoint).abs()
+                        .compareTo(rightBorder.subtract(breakPoint).abs())>0){
+                    rightBorder=breakPoint.subtract(rightBorder.abs());
+                    System.out.println("right " +rightBorder);
+                }else {
+                    leftBorder=breakPoint.add(leftBorder.abs());
+                    System.out.println("left "+leftBorder);
+                }
+            }
+            System.out.println("lolo");
+        }
+            BigDecimal res1 = methodMap.get(methodNumber).apply(function);
         numberOfSplits *= 2;
         BigDecimal res2 = methodMap.get(methodNumber).apply(function);
-        while (res2.subtract(res1).abs().compareTo(accuracy) > 0) {
+        BigDecimal deltaRes = res2.subtract(res1);
+        while (res2.subtract(res1)
+                .divide(BigDecimal.valueOf(Math.pow(2, k) - 1), MathContext.DECIMAL32)
+                .abs().compareTo(accuracy) > 0) {
+            if (res2.subtract(res1).compareTo(deltaRes) > 0) {
+                check += 1;
+            }
+            if (check >= 2) {
+                System.out.println("интеграл расходится");
+                break;
+            }
             numberOfSplits *= 2;
             res1 = res2;
             res2 = methodMap.get(methodNumber).apply(function);
@@ -50,8 +80,17 @@ public class MethodManager {
         BigDecimal x = leftBorder;
         for (int i = 1; i <= numberOfSplits; i++) {
             x = x.add(h);
-            res = res.add(function.apply(x));
+            System.out.println(x);
+            try {
+                res = res.add(function.apply(x));
+            } catch (ArithmeticException e) {
+                System.out.println(i);
+                res = res.add(function.apply(x.add(BigDecimal.valueOf(0.00000000000001))));
+
+            }
+
         }
+
         res = res.multiply(h);
         System.out.println("Это правые треугольники: " + res);
         return res;
@@ -78,6 +117,7 @@ public class MethodManager {
         BigDecimal x = leftBorder.add(hHalf);
         for (int i = 1; i <= numberOfSplits; i++) {
             res = res.add(function.apply(x));
+
             x = x.add(h);
         }
         res = res.multiply(h);
@@ -138,6 +178,10 @@ public class MethodManager {
 
     public void setFunction(Function<BigDecimal, BigDecimal> function) {
         this.function = function;
+    }
+
+    public void setBreakPoint(BigDecimal breakPoint) {
+        this.breakPoint = breakPoint;
     }
 
     public String getNamesMethods() {

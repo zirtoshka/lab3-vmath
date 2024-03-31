@@ -27,6 +27,7 @@ public class ConsoleManager {
             answer= sc.nextLine().toLowerCase().trim();
 
             methodManager.setFunction(functionHandler.getFunctionMap().get(Integer.parseInt(answer)));
+            methodManager.setBreakPoint(functionHandler.getBreakPoints().get(Integer.parseInt(answer)));
 
             System.out.println("Интервал для интегрирования через пробел:");
             BigDecimal[] ab =  Stream.of(sc.nextLine().toLowerCase().trim().split(" "))
