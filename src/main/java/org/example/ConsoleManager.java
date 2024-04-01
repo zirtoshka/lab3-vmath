@@ -52,7 +52,7 @@ public class ConsoleManager {
                     do {
                         try {
                             System.out.println("Интервал для интегрирования через пробел:");
-                            BigDecimal[] ab = Stream.of(sc.nextLine().toLowerCase().trim().split(" "))
+                            BigDecimal[] ab = Stream.of(sc.nextLine().toLowerCase().trim().replace(",",".").split(" "))
                                     .map(BigDecimal::new)
                                     .sorted()
                                     .limit(2)
@@ -74,7 +74,7 @@ public class ConsoleManager {
                         try {
 
                             System.out.println("выберите точность вычисления:");
-                            answer = sc.nextLine().toLowerCase().trim();
+                            answer = sc.nextLine().toLowerCase().trim().replace(",",".");
                             if (exitStr.contains(answer)) throw new ExitException();
                             methodManager.setAccuracy(new BigDecimal(answer));
                             nextStep = true;
