@@ -1,5 +1,7 @@
 package org.example;
 
+import org.example.exp.IntegralDivergesException;
+
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.HashMap;
@@ -32,69 +34,81 @@ public class MethodManager {
     }
 
     public void runMethod() {
-        int n = numberOfSplits;
-        int k;
-        if (methodNumber == 5) {
-            k = 4;
-        } else {
-            k = 2;
-        }
-        int check = 0;
-        if (breakPoint != null) {
-            if (leftBorder.compareTo(breakPoint) < 0 && rightBorder.compareTo(breakPoint) > 0) {
-//                if(leftBorder.subtract(breakPoint).abs()
-//                        .compareTo(rightBorder.subtract(breakPoint).abs())==0){
-//                    leftBorder=rightBorder;
-//                }
-//                else
-                if (leftBorder.subtract(breakPoint).abs()
-                        .compareTo(rightBorder.subtract(breakPoint).abs()) > 0) {
-                    rightBorder = breakPoint.subtract(rightBorder.abs());
-                } else if (leftBorder.subtract(breakPoint).abs()
-                        .compareTo(rightBorder.subtract(breakPoint).abs()) < 0) {
-                    leftBorder = breakPoint.add(leftBorder.abs());
-                } else {
+        try {
+            int n = numberOfSplits;
+            int k;
+            if (methodNumber == 5) {
+                k = 4;
+            } else {
+                k = 2;
+            }
+            int check = 0;
+            if (leftBorder.compareTo(rightBorder) == 0) {
+                System.out.println("Значение интеграла: " + 0);
+
+            } else {
+                if (breakPoint != null) {
+                    if (leftBorder.compareTo(breakPoint) == 0 || rightBorder.compareTo(breakPoint) == 0) {
+                        breakPointIsLeft = true;
+                        throw new IntegralDivergesException("интеграл расходится");
+                    }
                     if (function.apply(breakPoint.add(BigDecimal.valueOf(0.0000000001))).multiply(
                             function.apply(breakPoint.add(BigDecimal.valueOf(-0.0000000001)))
-                    ).compareTo(BigDecimal.ZERO) < 0) {
-                        leftBorder = rightBorder;
+                    ).compareTo(BigDecimal.ZERO) >= 0) {
+                        throw new IntegralDivergesException("интеграл расходится");
                     }
+                    if (leftBorder.compareTo(breakPoint) < 0 && rightBorder.compareTo(breakPoint) > 0) {
+                        if (leftBorder.subtract(breakPoint).abs()
+                                .compareTo(rightBorder.subtract(breakPoint).abs()) > 0) {
+                            rightBorder = breakPoint.subtract(rightBorder.abs());
+                        } else if (leftBorder.subtract(breakPoint).abs()
+                                .compareTo(rightBorder.subtract(breakPoint).abs()) < 0) {
+                            leftBorder = breakPoint.add(leftBorder.abs());
+                        } else {
+                            if (function.apply(breakPoint.add(BigDecimal.valueOf(0.0000000001))).multiply(
+                                    function.apply(breakPoint.add(BigDecimal.valueOf(-0.0000000001)))
+                            ).compareTo(BigDecimal.ZERO) < 0) {
+                                leftBorder = rightBorder;
+                            } else {
+                                throw new IntegralDivergesException("интеграл расходится");
+                            }
+                        }
+                    }
+
                 }
+                BigDecimal res1 = methodMap.get(methodNumber).apply(function);
+                numberOfSplits *= 2;
+                BigDecimal res2 = methodMap.get(methodNumber).apply(function);
+                BigDecimal deltaRes = res2.subtract(res1).abs();
+
+                while (res2.subtract(res1)
+                        .divide(BigDecimal.valueOf(Math.pow(2, k) - 1), MathContext.DECIMAL32)
+                        .abs().compareTo(accuracy) > 0) {
+                    if (res2.subtract(res1).abs().compareTo(deltaRes) > 0) {
+                        check += 1;
+                    }
+                    deltaRes = res2.subtract(res1).abs();
+                    if (check >= 3) {
+                        throw new IntegralDivergesException("интеграл расходится");
+
+                    }
+
+                    numberOfSplits *= 2;
+                    res1 = res2;
+                    res2 = methodMap.get(methodNumber).apply(function);
+                }
+                System.out.println("Значение интеграла: " + res2);
+                System.out.println("Количество разбиений для достижения точности: " + numberOfSplits);
+                numberOfSplits = n;
             }
-            if (leftBorder.compareTo(breakPoint) == 0) {
-                breakPointIsLeft = true;
-            }
-            System.out.println("lolo");
+        } catch (IntegralDivergesException e) {
+            System.out.println(e.getMessage());
         }
-        BigDecimal res1 = methodMap.get(methodNumber).apply(function);
-        numberOfSplits *= 2;
-        BigDecimal res2 = methodMap.get(methodNumber).apply(function);
-        BigDecimal deltaRes = res2.subtract(res1);
-        while (res2.subtract(res1)
-                .divide(BigDecimal.valueOf(Math.pow(2, k) - 1), MathContext.DECIMAL32)
-                .abs().compareTo(accuracy) > 0) {
-            if (res2.subtract(res1).compareTo(deltaRes) > 0) {
-                check += 1;
-            }
-            if (check >= 2) {
-                System.out.println("интеграл расходится");
-                break;
-            }
-            numberOfSplits *= 2;
-            res1 = res2;
-            res2 = methodMap.get(methodNumber).apply(function);
-        }
-        System.out.println("Значение интеграла: " + res2);
-        System.out.println("Количество разбиений для достижения точности: " + numberOfSplits);
-        numberOfSplits = n;
     }
 
     private BigDecimal rightRectangleMethod(Function<BigDecimal, BigDecimal> function) {
         BigDecimal res = BigDecimal.ZERO;
         BigDecimal h = rightBorder.subtract(leftBorder).divide(BigDecimal.valueOf(numberOfSplits), MathContext.DECIMAL32);
-        System.out.println(h + " h");
-        System.out.println(leftBorder + " left");
-        System.out.println(rightBorder + " right");
         BigDecimal x = leftBorder;
         for (int i = 1; i <= numberOfSplits; i++) {
             x = x.add(h);
@@ -102,7 +116,6 @@ public class MethodManager {
         }
 
         res = res.multiply(h);
-        System.out.println("Это правые треугольники: " + res);
         return res;
     }
 
@@ -115,7 +128,6 @@ public class MethodManager {
             x = x.add(h);
         }
         res = res.multiply(h);
-        System.out.println("Это левые треугольники " + res);
         return res;
     }
 
@@ -125,11 +137,10 @@ public class MethodManager {
         BigDecimal hHalf = h.divide(BigDecimal.valueOf(2), MathContext.DECIMAL32);
         BigDecimal x = leftBorder.add(hHalf);
         for (int i = 1; i <= numberOfSplits; i++) {
-                res = res.add(getFunctionValue(x));
+            res = res.add(getFunctionValue(x));
             x = x.add(h);
         }
         res = res.multiply(h);
-        System.out.println("Это средние треугольники " + res);
         return res;
     }
 
@@ -143,8 +154,6 @@ public class MethodManager {
             res = res.add(getFunctionValue(x));
         }
         res = res.multiply(h);
-
-        System.out.println("Это трапеции " + res);
         return res;
     }
 
@@ -162,9 +171,6 @@ public class MethodManager {
 
         }
         res = res.multiply(h.divide(BigDecimal.valueOf(3), MathContext.DECIMAL32));
-
-        System.out.println("Это Симпсон " + res);
-
         return res;
     }
 

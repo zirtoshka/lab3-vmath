@@ -8,7 +8,6 @@ public class App {
         ConsoleManager consoleManager = new ConsoleManager(functionHandler, methodManager);
         consoleManager.startConversation();
 
-        System.out.println("Hello world!");
     }
 
 }
