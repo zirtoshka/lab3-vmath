@@ -51,7 +51,6 @@ public class ConsoleManager {
             methodManager.runMethod();
 
 
-            System.exit(0);
         }
     }
 }
